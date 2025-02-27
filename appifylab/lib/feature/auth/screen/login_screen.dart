@@ -30,7 +30,7 @@ class LoginScreen extends StatelessWidget {
                   height: MediaQuery.of(context).size.height * 0.55,
                   padding: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryColor.withOpacity(0.4),
+                    color: AppColors.primaryColor.withValues(alpha:0.4),
                     border: Border(
                       top: BorderSide(
                         width: 4,
@@ -113,12 +113,12 @@ class LoginScreen extends StatelessWidget {
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withValues(alpha:0.7),
                                 ),
                               ),
-                              fillColor: Colors.white.withOpacity(
+                              fillColor: Colors.white.withValues(alpha:
                                 0.25,
-                              ), // Corrected method
+                              ), 
                               filled: true,
                               hintText: 'Password',
                               hintStyle: globalTextStyle(color: Colors.white),

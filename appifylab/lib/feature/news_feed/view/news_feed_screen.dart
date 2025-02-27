@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:appifylab/core/const/app_colors.dart';
 import 'package:appifylab/core/style/global_text_style.dart';
 import 'package:appifylab/feature/news_feed/controller/news_feed_controller.dart';
+import 'package:appifylab/feature/news_feed/widget/post_input.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
@@ -54,164 +58,158 @@ class NewsFeedPage extends StatelessWidget {
             ),
           ),
 
-          _buildPostInputField(),
-          Expanded(child: _buildPostList()),
+          PostInput(),
+          Expanded(
+            child: Obx(
+              () => ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: postController.newsFeedData.length,
+                itemBuilder: (context, index) {
+                  var post = postController.newsFeedData[index];
+                  return Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment(-1.0, 0.0),
+                        end: Alignment(1.0, 0.0),
+                        transform: GradientRotation(90),
+                        colors: extractGradientColors(post.bgColor ?? ""),
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    margin: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: Colors.grey,
+                                backgroundImage: NetworkImage(
+                                  post.user?.profilePic ?? '',
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    post.name ?? "Unknown",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    getTimeAgo(post.timezone),
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Spacer(),
+                              IconButton(
+                                icon: Icon(Icons.more_vert),
+                                onPressed: () {},
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 10),
+                          Linkify(
+                            onOpen: (link) async {
+                              if (await canLaunch(link.url)) {
+                                await launch(link.url);
+                              }
+                            },
+                            text: post.feedTxt ?? "",
+                            style: TextStyle(fontSize: 14),
+                            linkStyle: TextStyle(color: Colors.blue),
+                          ),
+                          if (post.pic != null)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10.0,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  post.pic ?? "",
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.thumb_up_alt_outlined),
+                                onPressed: () => postController.likePost(index),
+                              ),
+                              Text("You and ${post.likeCount} other"),
+                              SizedBox(width: 10),
+                              IconButton(
+                                icon: Icon(Icons.comment_outlined),
+                                onPressed:
+                                    () => postController.commentOnPost(index),
+                              ),
+                              Text("${post.commentCount} Comments"),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildPostInputField() {
-    return Padding(
-      padding: const EdgeInsets.all(10.0),
-      child: Container(
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(5),
-                ),
+String getTimeAgo(DateTime dateTime) {
+  DateTime now = DateTime.now();
+  Duration difference = now.difference(dateTime);
 
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Icon(Icons.person_rounded, size: 45),
-                ),
-              ),
-
-              SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: "Write Something here...",
-
-                    border: InputBorder.none,
-                  ),
-                ),
-              ),
-              SizedBox(width: 10),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                ),
-                onPressed: () {},
-                child: Text(
-                  "Post",
-                  style: globalTextStyle(color: AppColors.whiteColor),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  if (difference.inDays > 0) {
+    return "${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago";
+  } else if (difference.inHours > 0) {
+    return "${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago";
+  } else if (difference.inMinutes > 0) {
+    return "${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago";
+  } else {
+    return "Just now";
   }
+}
 
-  Widget _buildPostList() {
-    return Obx(
-      () => ListView.builder(
-        padding: EdgeInsets.zero,
-        itemCount: postController.posts.length,
-        itemBuilder: (context, index) {
-          var post = postController.posts[index];
-          return _buildPostCard(post, index);
-        },
-      ),
-    );
-  }
+List<Color> extractGradientColors(String bgColor) {
+  try {
+    String cleanedBgColor = bgColor.replaceAll("\"", "");
+    Map<String, dynamic> bgColorJson = jsonDecode(cleanedBgColor);
+    String gradientString = bgColorJson["backgroundImage"];
 
-  Widget _buildPostCard(Map<String, dynamic> post, int index) {
-    return Card(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildPostHeader(post),
-            SizedBox(height: 10),
-            _buildPostContent(post),
-            if (post["image"] != null && post["image"].isNotEmpty)
-              _buildPostImage(post["image"]),
-            _buildPostActions(post, index),
-          ],
-        ),
-      ),
-    );
-  }
+    RegExp regex = RegExp(r"rgb\((\d+), (\d+), (\d+)\)");
+    Iterable<Match> matches = regex.allMatches(gradientString);
 
-  Widget _buildPostHeader(Map<String, dynamic> post) {
-    return Row(
-      children: [
-        CircleAvatar(
-          backgroundColor: Colors.grey,
-          child: Icon(Icons.person, color: Colors.white),
-        ),
-        SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              post["username"],
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              post["time"],
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
-        ),
-        Spacer(),
-        IconButton(icon: Icon(Icons.more_vert), onPressed: () {}),
-      ],
-    );
-  }
+    List<Color> colors =
+        matches.map((match) {
+          return Color.fromRGBO(
+            int.parse(match.group(1)!),
+            int.parse(match.group(2)!),
+            int.parse(match.group(3)!),
+            1.0,
+          );
+        }).toList();
 
-  Widget _buildPostContent(Map<String, dynamic> post) {
-    return Linkify(
-      onOpen: (link) async {
-        if (await canLaunch(link.url)) {
-          await launch(link.url);
-        }
-      },
-      text: post["text"],
-      style: TextStyle(fontSize: 14),
-      linkStyle: TextStyle(color: Colors.blue),
-    );
-  }
-
-  Widget _buildPostImage(String imageUrl) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Image.network(imageUrl, fit: BoxFit.cover),
-      ),
-    );
-  }
-
-  Widget _buildPostActions(Map<String, dynamic> post, int index) {
-    return Row(
-      children: [
-        IconButton(
-          icon: Icon(Icons.thumb_up_alt_outlined),
-          onPressed: () => postController.likePost(index),
-        ),
-        Text("You and ${post["likes"]} other"),
-        SizedBox(width: 10),
-        IconButton(
-          icon: Icon(Icons.comment_outlined),
-          onPressed: () => postController.commentOnPost(index),
-        ),
-        Text("${post["comments"]} Comments"),
-      ],
-    );
+    return colors;
+  } catch (e) {
+    if (kDebugMode) {
+      print("Error parsing gradient: $e");
+    }
+    return [Colors.white, Colors.white];
   }
 }

@@ -8,11 +8,11 @@ class CircularBackButton extends StatelessWidget {
   final Color? backgroundColor; // Optional parameter for background color
 
   const CircularBackButton({
-    Key? key,
+    super.key,
     required this.onPressed,
     this.iconColor, // Allow customization
     this.backgroundColor, // Allow customization
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
