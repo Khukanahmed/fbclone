@@ -1,8 +1,8 @@
 import 'dart:convert';
-
 import 'package:appifylab/core/services_class/local_service/shared_preferences_helper.dart';
+import 'package:appifylab/feature/news_feed/model/comment_model.dart';
 import 'package:appifylab/feature/news_feed/model/news_feed_model.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
@@ -64,8 +64,6 @@ class PostController extends GetxController {
                   ),
                 );
               }).toList();
-
-          
         }
       }
     } catch (e) {
@@ -73,34 +71,49 @@ class PostController extends GetxController {
     }
   }
 
-  var posts =
-      [
-        {
-          "username": "Alexander John",
-          "time": "2 days ago",
-          "text":
-              "Hello everyone, this is a post from the app to see if the attached link is working or not. Here is a link https://www.merriam-webster.com/dictionary/link but I think this is not working.",
-          "image": "https://source.unsplash.com/random/400x300", // Sample Image
-          "likes": 2,
-          "comments": 12,
-        },
-        {
-          "username": "Ruiz Rahim",
-          "time": "2 days ago",
-          "text": "This is a sample test for checking.",
-          "image": "",
-          "likes": 0,
-          "comments": 0,
-        },
-      ].obs;
+  var comment = <CommentModel>[].obs;
+  Future<List<CommentModel>> getComments(String spaceId) async {
+    try {
+      String? token = await SharedPreferencesHelper.getAccessToken();
 
-  void likePost(int index) {
-    posts[index]["likes"] = (posts[index]["likes"] as int) + 1;
-    posts.refresh(); // Update UI
-  }
+      if (token != null) {
+        print("Access Token: $token");
+      } else {
+        print("No token found");
+      }
 
-  void commentOnPost(int index) {
-    posts[index]["comments"] = (posts[index]["comments"] as int) + 1;
-    posts.refresh();
+      final response = await http.get(
+        Uri.parse(
+          'https://ezyappteam.ezycourse.com/api/app/student/comment/getComment/$spaceId?more=null',
+        ),
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      var data = jsonDecode(response.body);
+
+      if (kDebugMode) {
+        print("data: $data");
+      }
+
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+
+        comment.value = CommentModel.fromJsonList(response.body);
+        return comment;
+      } else {
+        if (kDebugMode) {
+          print("API Error: ${response.statusCode}");
+        }
+        return [];
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error: $e");
+      }
+      return [];
+    }
   }
 }

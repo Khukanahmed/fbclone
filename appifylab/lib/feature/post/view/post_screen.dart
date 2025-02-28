@@ -32,7 +32,7 @@ class CreatePostPage extends StatelessWidget {
               controller.createPost();
             },
             child: Text(
-              'Create',
+              'Post',
               style: TextStyle(color: Colors.blue, fontSize: 16),
             ),
           ),

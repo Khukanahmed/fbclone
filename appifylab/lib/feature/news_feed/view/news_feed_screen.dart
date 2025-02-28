@@ -1,8 +1,8 @@
 import 'dart:convert';
-
 import 'package:appifylab/core/const/app_colors.dart';
 import 'package:appifylab/core/style/global_text_style.dart';
 import 'package:appifylab/feature/news_feed/controller/news_feed_controller.dart';
+import 'package:appifylab/feature/news_feed/widget/comment_screen.dart';
 import 'package:appifylab/feature/news_feed/widget/post_input.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -145,14 +145,19 @@ class NewsFeedPage extends StatelessWidget {
                             children: [
                               IconButton(
                                 icon: Icon(Icons.thumb_up_alt_outlined),
-                                onPressed: () => postController.likePost(index),
+                                onPressed: () {},
                               ),
                               Text("You and ${post.likeCount} other"),
                               SizedBox(width: 10),
                               IconButton(
                                 icon: Icon(Icons.comment_outlined),
-                                onPressed:
-                                    () => postController.commentOnPost(index),
+                                onPressed: () {
+                                  postController.getComments(
+                                    post.id.toString(),
+                                  );
+
+                                  _showPostDetails(context, post.id.toString());
+                                },
                               ),
                               Text("${post.commentCount} Comments"),
                             ],
@@ -212,4 +217,60 @@ List<Color> extractGradientColors(String bgColor) {
     }
     return [Colors.white, Colors.white];
   }
+}
+
+void _showPostDetails(BuildContext context, String postId) {
+  final PostController postController = Get.find<PostController>();
+
+  // Fetch comments for the specific post before showing the details.
+  postController
+      .getComments(postId)
+      .then((comments) {
+        showModalBottomSheet(
+          context: context,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(15.0)),
+          ),
+          builder: (context) {
+            return Container(
+              padding: EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Comments",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 10),
+                  // Display the list of comments
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: comments.length,
+                      itemBuilder: (context, index) {
+                        var comment = comments[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.grey,
+                            backgroundImage: NetworkImage(
+                              comment.user.profilePic,
+                            ),
+                          ),
+                          title: Text(comment.user.fullName),
+                          subtitle: Text(comment.commentTxt),
+                          trailing: Text(
+                            getTimeAgo(DateTime.parse(comment.createdAt)),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      })
+      .catchError((e) {
+        print("Error fetching comments: $e");
+      });
 }
